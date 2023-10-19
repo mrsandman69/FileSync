@@ -55,5 +55,7 @@ extern void verbose(char *, ...);				/* Prints to stdout if verbose flag is set 
 
 extern void parse_args(int, char *[]);			/* Parses command line arguments */
 
-extern void scan_directories(char **, int);	/* Lists regular files in directories */
+extern void scan_directories(char **, int);		/* Lists regular files in directories */
+extern void compare_directories();				/* Compares files in directories */
+extern void compare_modified_time();			/* Compares modified time of files */
 

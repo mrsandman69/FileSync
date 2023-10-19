@@ -10,18 +10,10 @@ void print_directory_array() {
 	for (int i = 0; i < n_directories; i++) {
 		printf("Directory: %s\n", directory_array[i].dir_path);
 		for (int j = 0; j < directory_array[i].n_files; j++) {
-			printf("File: %s\n", directory_array[i].files[j].filename);
+			printf("File: %s\t\t", directory_array[i].files[j].filename);
+			printf("Modified: %s\n", ctime(&directory_array[i].files[j].mtime));
 		}
 	}
-}
-
-uint8_t directory_already_exists(char *dir_path) {
-	for (int i = 0; i < n_directories; i++) {
-		if (strcmp(directory_array[i].dir_path, dir_path) == 0) {
-			return true;
-		}
-	}
-	return false;
 }
 
 void scan_directories(char **directories, int num_directories) {
@@ -37,6 +29,14 @@ void scan_directories(char **directories, int num_directories) {
 		}
 
 		printf("Regular files in directory %s:\n", directories[i]);
+		/* Expand directory_array */
+		directory_array = realloc(directory_array, (n_directories + 1) * sizeof(directory_info_t));
+		CHECK_ALLOC(directory_array);
+		/* Add directory to directory_array */
+		directory_array[n_directories].dir_path = strdup(directories[i]);
+		CHECK_ALLOC(directory_array[n_directories].dir_path);
+		directory_array[n_directories].n_files = 0;
+		++n_directories;
 
 		/* Iterate over directory entries */
 		while ((dp = readdir(dirp)) != NULL) {
@@ -67,33 +67,88 @@ void scan_directories(char **directories, int num_directories) {
 				CHECK_ALLOC(files[n_files].directory);
 				files[n_files].mtime = file_stat.st_mtime;
 
-				if (directory_already_exists(files[n_files].directory) == false) {
-					/* Expand directory_array */
-					directory_array = realloc(directory_array, (n_directories + 1) * sizeof(directory_info_t));
-					CHECK_ALLOC(directory_array);
-					/* Add directory to directory_array */
-					directory_array[n_directories].dir_path = strdup(files[n_files].directory);
-					CHECK_ALLOC(directory_array[n_directories].dir_path);
-					directory_array[n_directories].n_files = 0;
-					directory_array[n_directories].files = NULL;
-					++n_directories;
-				} else {
-					for (int i = 0; i < n_directories; i++) {
-						if (strcmp(directory_array[i].dir_path, files[n_files].directory) == 0) {
-							directory_array[i].files = realloc(directory_array[i].files, (directory_array[i].n_files + 1) * sizeof(file_info_t));
-							CHECK_ALLOC(directory_array[i].files);
-							directory_array[i].files[directory_array[i].n_files] = files[n_files];
-							++directory_array[i].n_files;
-						}
-					}
-				}
+				/* Update corresponding directory struct */
+				directory_array[i].files = realloc(directory_array[i].files, (directory_array[i].n_files + 1) * sizeof(file_info_t));
+				CHECK_ALLOC(directory_array[i].files);
+				directory_array[i].files[directory_array[i].n_files] = files[n_files];
+				CHECK_ALLOC(directory_array[i].files[directory_array[i].n_files].filename);
+				++directory_array[i].n_files;
+
+				/* Update global file count */
 				++n_files;
-				
 			}
 		}
-
 		closedir(dirp);
+
 	}
 	print_directory_array();
+	compare_directories();
+	compare_modified_time();
 }
 
+
+
+void compare_directories() {
+	/* Iterate over directories array */
+	for (int i = 0; i < n_directories; i++) {
+		printf("Checking directory %s for missing files...\n", directory_array[i].dir_path);
+
+		/* Iterate over files in current directory */
+		for (int j = 0; j < directory_array[i].n_files; j++) {
+			char *filename = directory_array[i].files[j].filename;
+			int file_missing = 1;   /* Flag to indicate if file is missing in any other directory */
+
+			/* Iterate over other directories */
+			for (int k = 0; k < n_directories; k++) {
+				/* Skip current directory */
+				if (k == i) {
+					continue;
+				}
+				/* Check if file exists in other directory */
+				for (int l = 0; l < directory_array[k].n_files; l++) {
+					if (strcmp(filename, directory_array[k].files[l].filename) == 0) {
+						file_missing = 0;
+						break;
+					}
+				}
+				/* Print message if file is missing in other directory */
+				if (file_missing) {
+					printf("File %s is missing in directory %s\n", filename, directory_array[k].dir_path);
+				}
+			}
+		}
+	}
+}
+
+/*
+* In future, we can still use this function for recursive mode
+* because the directories array will contain all subdirectories
+* of the original directories.
+*/
+void compare_modified_time() {
+	/* Iterate over files array */
+	for (int i = 0; i < n_files; i++) {
+		char *filename = files[i].filename;
+		time_t most_recent_mtime = files[i].mtime;
+		char *most_recent_directory = files[i].directory;
+
+		/* Iterate over other files */
+		for (int j = 0; j < n_files; j++) {
+			/* Skip current file */
+			if (j == i) {
+				continue;
+			}
+			/* Check if file has same name */
+			if (strcmp(filename, files[j].filename) == 0) {
+				/* Check if file has more recent modified time */
+				if (files[j].mtime > most_recent_mtime) {
+					most_recent_mtime = files[j].mtime;
+					most_recent_directory = files[j].directory;
+				}
+			}
+		}
+		if (most_recent_directory != files[i].directory) {
+			printf("File %s is more recent in directory %s\n", filename, most_recent_directory);
+		}
+	}
+}
