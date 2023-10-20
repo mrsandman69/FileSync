@@ -6,10 +6,10 @@ void copy_file(char *src_path, char *dest_path) {
     }
 
     struct stat src_stat;
-    if (stat(src_path, &src_stat) != 0) {
-        perror("Error: could not get source file metadata");
-        exit(EXIT_FAILURE);
-    }
+    // if (stat(src_path, &src_stat) != 0) {
+    //     perror("Error: could not get source file metadata");
+    //     exit(EXIT_FAILURE);
+    // }
     time_t src_mtime = src_stat.st_mtime;
     time_t src_atime = src_stat.st_atime;
 

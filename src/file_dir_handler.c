@@ -47,13 +47,22 @@ void scan_directories(char **directories, int num_directories) {
 			IGNORE_HIDDEN_OPT_A(dp->d_name);    /* Ignore hidden files or directories if -a is not set */
 
 			sprintf(filepath, "%s/%s", directories[i], filename);   /* Construct full path to file */
-			
+		
 			/* Get file attributes */
 			if (stat(filepath, &file_stat) == -1) {
 				fprintf(stderr, "Error getting file status for %s\n", filepath);
 				continue;
 			}
 
+			if (S_ISDIR(file_stat.st_mode) && strcmp(filename, ".") != 0 && strcmp(filename, "..") != 0) {
+				printf("subdirectory: %s\n", filename);
+				printf("path: %s\n", filepath);
+				char subdir_path[MAXPATHLEN];
+				sprintf(subdir_path, "%s/%s", filepath, filename);
+				printf("subdir_path: %s\n", subdir_path);
+				mkdir(subdir_path, 0777);
+				continue;
+			}
 			/* Check if file is a regular file */
 			if (S_ISREG(file_stat.st_mode)) {
 				printf("%s\n", filename);
@@ -77,6 +86,7 @@ void scan_directories(char **directories, int num_directories) {
 				/* Update global file count */
 				++n_files;
 			}
+		
 		}
 		closedir(dirp);
 
