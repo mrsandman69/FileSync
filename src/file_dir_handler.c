@@ -135,6 +135,9 @@ void compare_directories() {
 * of the original directories.
 */
 void compare_modified_time() {
+	bool copied_files[n_files];                  /* Array to keep track of copied files */
+	memset(copied_files, false, n_files * sizeof(bool));
+
 	/* Iterate over files array */
 	for (int i = 0; i < n_files; i++) {
 		char *filename = files[i].filename;
@@ -162,6 +165,10 @@ void compare_modified_time() {
 			if (strcmp(most_recent_directory, directory_array[k].dir_path) == 0) {
 				continue;
 			}
+			/* Skip if file has already been copied to directory */
+			if (copied_files[i]) {
+				continue;
+			}
 			printf("Copy file %s from %s to %s\n", filename, most_recent_directory, directory_array[k].dir_path);
 			if (CONFIG.dry_run) {
 				continue;
@@ -173,6 +180,7 @@ void compare_modified_time() {
 			sprintf(dest_path, "%s/%s", directory_array[k].dir_path, filename);
 			/* Copy file */
 			copy_file(src_path, dest_path);
+			copied_files[i] = true;
 		}
 	}
 }
