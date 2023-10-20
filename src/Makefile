@@ -2,7 +2,7 @@
 
 PROJECT =   mysync
 HEADERS =   $(PROJECT).h
-OBJ     =   mysync.o args_parser.o reporter.o file_dir_handler.o
+OBJ     =   mysync.o args_parser.o reporter.o file_dir_handler.o copy_file.o
 
 C11     =   cc -std=c11
 CFLAGS  =   -Wall -Werror

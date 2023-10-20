@@ -111,9 +111,18 @@ void compare_directories() {
 						break;
 					}
 				}
-				/* Print message if file is missing in other directory */
+				/* If file is missing, perform copy operation from directory to target directory */
 				if (file_missing) {
-					printf("File %s is missing in directory %s\n", filename, directory_array[k].dir_path);
+					if (!CONFIG.dry_run) {
+						/* Construct full path to file */
+						char src_path[1024];
+						char dest_path[1024];
+						sprintf(src_path, "%s/%s", directory_array[i].dir_path, filename);
+						sprintf(dest_path, "%s/%s", directory_array[k].dir_path, filename);
+						/* Copy file */
+						copy_file(src_path, dest_path);
+					}
+					printf("Copy from %s to %s\n", directory_array[i].dir_path, directory_array[k].dir_path);
 				}
 			}
 		}
@@ -147,8 +156,23 @@ void compare_modified_time() {
 				}
 			}
 		}
-		if (most_recent_directory != files[i].directory) {
-			printf("File %s is more recent in directory %s\n", filename, most_recent_directory);
+		/* Copy most recent version of file to other directories */
+		for (int k = 0; k < n_directories; k++) {
+			/* Skip directory where most recent version of file is located */
+			if (strcmp(most_recent_directory, directory_array[k].dir_path) == 0) {
+				continue;
+			}
+			printf("Copy file %s from %s to %s\n", filename, most_recent_directory, directory_array[k].dir_path);
+			if (CONFIG.dry_run) {
+				continue;
+			}
+			/* Construct full path to file */
+			char src_path[1024];
+			char dest_path[1024];
+			sprintf(src_path, "%s/%s", most_recent_directory, filename);
+			sprintf(dest_path, "%s/%s", directory_array[k].dir_path, filename);
+			/* Copy file */
+			copy_file(src_path, dest_path);
 		}
 	}
 }

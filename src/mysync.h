@@ -59,3 +59,4 @@ extern void scan_directories(char **, int);		/* Lists regular files in directori
 extern void compare_directories();				/* Compares files in directories */
 extern void compare_modified_time();			/* Compares modified time of files */
 
+void copy_file(char *, char *);					/* Copies file from source to destination */
