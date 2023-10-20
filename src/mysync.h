@@ -37,6 +37,7 @@ typedef struct {
 	char *directory;
 	time_t mtime;
 	mode_t mode;
+	bool copied;
 } file_info_t;
 
 typedef struct {

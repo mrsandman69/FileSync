@@ -8,10 +8,10 @@ int n_directories = 0;                          /* Number of directories in dire
 /* Function to print all information on elements in directory_array */
 void print_directory_array() {
 	for (int i = 0; i < n_directories; i++) {
-		printf("Directory: %s\n", directory_array[i].dir_path);
+		verbose("Directory: %s\n", directory_array[i].dir_path);
 		for (int j = 0; j < directory_array[i].n_files; j++) {
-			printf("File: %s\t\t", directory_array[i].files[j].filename);
-			printf("Modified: %s\n", ctime(&directory_array[i].files[j].mtime));
+			verbose("File: %s\t\t", directory_array[i].files[j].filename);
+			verbose("Modified: %s\n", ctime(&directory_array[i].files[j].mtime));
 		}
 	}
 }
@@ -91,7 +91,7 @@ void scan_directories(char **directories, int num_directories) {
 void compare_directories() {
 	/* Iterate over directories array */
 	for (int i = 0; i < n_directories; i++) {
-		printf("Checking directory %s for missing files...\n", directory_array[i].dir_path);
+		verbose("Checking directory %s for missing files...\n", directory_array[i].dir_path);
 
 		/* Iterate over files in current directory */
 		for (int j = 0; j < directory_array[i].n_files; j++) {
@@ -122,7 +122,7 @@ void compare_directories() {
 						/* Copy file */
 						copy_file(src_path, dest_path);
 					}
-					printf("Copy from %s to %s\n", directory_array[i].dir_path, directory_array[k].dir_path);
+					verbose("Copy from %s to %s\n", directory_array[i].dir_path, directory_array[k].dir_path);
 				}
 			}
 		}
@@ -135,9 +135,6 @@ void compare_directories() {
 * of the original directories.
 */
 void compare_modified_time() {
-	bool copied_files[n_files];                  /* Array to keep track of copied files */
-	memset(copied_files, false, n_files * sizeof(bool));
-
 	/* Iterate over files array */
 	for (int i = 0; i < n_files; i++) {
 		char *filename = files[i].filename;
@@ -159,17 +156,25 @@ void compare_modified_time() {
 				}
 			}
 		}
+		/* Skip if file has already been copied to directory */
+		if (files[i].copied) {
+			continue;
+		}
 		/* Copy most recent version of file to other directories */
 		for (int k = 0; k < n_directories; k++) {
 			/* Skip directory where most recent version of file is located */
 			if (strcmp(most_recent_directory, directory_array[k].dir_path) == 0) {
 				continue;
 			}
-			/* Skip if file has already been copied to directory */
-			if (copied_files[i]) {
+			/* Skip if most recent file is already in target directory */
+			char target_path[1024];
+			sprintf(target_path, "%s/%s", directory_array[k].dir_path, filename);
+			struct stat target_stat;
+		  	if (stat(target_path, &target_stat) == 0 && (target_stat.st_mtime == most_recent_mtime)) {
 				continue;
 			}
-			printf("Copy file %s from %s to %s\n", filename, most_recent_directory, directory_array[k].dir_path);
+
+			verbose("Copy file %s from %s to %s\n", filename, most_recent_directory, directory_array[k].dir_path);
 			if (CONFIG.dry_run) {
 				continue;
 			}
@@ -178,9 +183,15 @@ void compare_modified_time() {
 			char dest_path[1024];
 			sprintf(src_path, "%s/%s", most_recent_directory, filename);
 			sprintf(dest_path, "%s/%s", directory_array[k].dir_path, filename);
+			
 			/* Copy file */
 			copy_file(src_path, dest_path);
-			copied_files[i] = true;
+			/* Mark all files with same filename as copied */
+			for (int l = 0; l < n_files; l++) {
+				if (strcmp(filename, files[l].filename) == 0) {
+					files[l].copied = true;
+				}
+			}
 		}
 	}
 }
